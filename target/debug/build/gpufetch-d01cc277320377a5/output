@@ -1,0 +1,4 @@
+cargo:rustc-link-lib=pci
+cargo:rustc-link-lib=pci
+cargo:rerun-if-changed=src/
+cargo:rerun-if-changed=Cargo.toml
