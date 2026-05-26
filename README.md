@@ -39,7 +39,7 @@ gpufetch is made up of three backends:
 Backends are enabled and disabled at compile time using Cargo features. When building gpufetch, check the build output to see which backends are enabled.
 
 ```bash
-cargo build --release --all-features
+cargo build --path --all-features
 ```
 
 gpufetch will only detect your GPU if the appropriate backend was enabled during compilation (e.g., it will not detect your NVIDIA GPU if the CUDA backend is disabled!).
@@ -52,7 +52,7 @@ The CUDA toolkit is required to build gpufetch with the CUDA backend enabled. Ho
 
 ```bash
 export CUDA_PATH=/usr/local/cuda
-cargo build --release --features cuda
+cargo build --path --features cuda
 ```
 
 ### 2.2 The backend is enabled, but gpufetch is unable to detect my GPU
@@ -87,24 +87,24 @@ To build gpufetch, just clone the repo and run:
 ```bash
 git clone https://github.com/your-repo/gpufetch.git
 cd gpufetch
-cargo build --release
-./target/release/gpufetch
+cargo install --path .
+gpufetch
 ```
 
 **Build with specific backends:**
 
 ```bash
 # All backends
-cargo build --release --all-features
+cargo build --path --all-features
 
 # Only AMD
-cargo build --release --features amd
+cargo build --path --features amd
 
 # Only Intel
-cargo build --release --features intel
+cargo build --path --features intel
 
 # Only NVIDIA (CUDA)
-cargo build --release --features cuda
+cargo build --path --features cuda
 ```
 
 ---
@@ -122,24 +122,10 @@ By specifying a name, gpufetch will use the specific colors of each manufacturer
 - `nvidia`
 
 ```bash
-./target/release/gpufetch --color intel  # default color for Intel
-./target/release/gpufetch --color amd    # default color for AMD
-./target/release/gpufetch --color nvidia # default color for NVIDIA
+gpufetch --color intel  # default color for Intel
+gpufetch --color amd    # default color for AMD
+gpufetch --color nvidia # default color for NVIDIA
 ```
-
-### 4.2 Specifying the colors in RGB format
-
-5 colors must be given in RGB with the format: `[R,G,B:R,G,B:R,G,B:R,G,B:R,G,B]`. These colors correspond to:
-
-- **First 3 colors:** GPU logo
-- **Last 2 colors:** Text colors
-
-```bash
-./target/release/gpufetch --color 239,90,45:210,200,200:0,0,0:100,200,45:0,200,200
-```
-
----
-
 ## Features
 
 - ✅ **Accurate hardware detection** - RDNA vs CDNA architecture distinction
