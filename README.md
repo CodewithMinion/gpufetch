@@ -1,24 +1,14 @@
-
-
 # gpufetch
 
 **gpufetch** is a simple yet fancy GPU architecture fetching tool written in **Rust**. It displays detailed GPU information in a clean, beautiful, and colorful way.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Dr-Noob/gpufetch/main/screenshot.png" alt="gpufetch screenshot" width="800"/>
-</p>
+---
 
-## Table of Contents
+## License
 
-1. [Support](#support)
-2. [Backends](#backends)
-   - [2.1 CUDA backend is not enabled. Why?](#21-cuda-backend-is-not-enabled-why)
-   - [2.2 The backend is enabled, but gpufetch is unable to detect my GPU](#22-the-backend-is-enabled-but-gpufetch-is-unable-to-detect-my-gpu)
-3. [Installation (building from source)](#installation-building-from-source)
-4. [Colors](#colors)
-   - [4.1 Specifying a name](#41-specifying-a-name)
-   - [4.2 Specifying the colors in RGB format](#42-specifying-the-colors-in-rgb-format)
-5. [Bugs or improvements](#bugs-or-improvements)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+MIT License - see [LICENSE](https://github.com/CodewithMinion/gpufetch/edit/main/LICENSE) for details.
 
 ---
 
@@ -70,7 +60,7 @@ $ lspci -nn | grep -i vga
 $ lspci -nn | grep -i 3d
 ```
 
-If there is a NVIDIA, AMD, or Intel GPU in the system and the appropriate backend is enabled but gpufetch does not detect the GPU, please create a new issue with the provided error message on the [issues page](https://github.com/your-repo/gpufetch/issues).
+If there is a NVIDIA, AMD, or Intel GPU in the system and the appropriate backend is enabled but gpufetch does not detect the GPU, please create a new issue with the provided error message on the [issues page](https://github.com/CodewithMinion/gpufetch/issues).
 
 ---
 
@@ -146,12 +136,6 @@ By specifying a name, gpufetch will use the specific colors of each manufacturer
 
 ---
 
-## Bugs or improvements
-
-See [gpufetch contributing guidelines](https://github.com/your-repo/gpufetch/blob/main/CONTRIBUTING.md) for information on how to report bugs or submit improvements.
-
----
-
 ## Features
 
 - ✅ **Accurate hardware detection** - RDNA vs CDNA architecture distinction
@@ -162,10 +146,6 @@ See [gpufetch contributing guidelines](https://github.com/your-repo/gpufetch/blo
 - ✅ **Production-ready** - 10/10 code quality with proper error handling
 
 ---
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
