@@ -8,21 +8,21 @@
 //! let gpu = get_gpu_info(0)?;
 //! ```
 
+use crate::common;
 use crate::gpu::{GpuInfo, Vendor, Uarch, TopologyIntel};
 use crate::global::{info, warn};
-use crate::error::{Result, GpufetchError};
+use crate::error::Result;
 use std::fs;
-use std::process::Command;
 
 /// Lists all Intel GPUs found via lspci
 pub fn list_gpus() -> Result<()> {
     info("Listing Intel GPUs via PCI...");
     
-    let output = Command::new("lspci")
-        .args(&["-d", "8086:"])
-        .output()
-        .map_err(|e| GpufetchError::CommandFailed(e))?;
-    
+    let Some(output) = common::try_output("lspci", &["-d", "8086:"]) else {
+        warn("lspci not found (install pciutils)");
+        return Ok(());
+    };
+
     if !output.status.success() {
         warn("lspci returned non-zero exit code");
         return Ok(());

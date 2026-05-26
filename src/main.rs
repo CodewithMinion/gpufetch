@@ -1,3 +1,5 @@
+mod common;
+mod apple;
 mod gpu;
 mod intel;
 mod amd;
@@ -71,6 +73,9 @@ fn list_gpus() -> Result<()> {
     #[cfg(target_os = "macos")]
     macos::list_gpus()?;
     
+    #[cfg(target_os = "linux")]
+    apple::linux::list_gpus()?;
+
     #[cfg(feature = "intel")]
     {
         #[cfg(target_os = "linux")]
@@ -83,6 +88,7 @@ fn list_gpus() -> Result<()> {
         amd::list_gpus()?;
     }
     
+    #[cfg(not(target_os = "macos"))]
     cuda::list_gpus()?;
     
     Ok(())
@@ -104,7 +110,10 @@ fn fetch_and_print_gpu(idx: i32, options: &PrintOptions) -> Result<()> {
                         mac_idx += 1;
                     }
                     Ok(None) => break,
-                    Err(e) => return Err(e),
+                    Err(e) => {
+                        debug(&format!("macOS detection failed: {e}"));
+                        break;
+                    }
                 }
             }
         } else {
@@ -113,12 +122,26 @@ fn fetch_and_print_gpu(idx: i32, options: &PrintOptions) -> Result<()> {
                     print_gpu_info(&gpu, options)?;
                     found = true;
                 }
-                Ok(None) | Err(_) if idx != -1 => {}
-                Ok(None) | Err(_) => {}
+                Ok(None) => {}
+                Err(e) => debug(&format!("macOS detection failed: {e}")),
             }
         }
     }
     
+    // Linux on Apple hardware (Asahi, etc.): device-tree / DRM, not system_profiler
+    #[cfg(target_os = "linux")]
+    {
+        if !found && (idx == -1 || idx == 0) {
+            match apple::linux::get_gpu_info(0) {
+                Ok(Some(gpu)) => {
+                    print_gpu_info(&gpu, options)?;
+                    found = true;
+                }
+                Ok(None) | Err(_) => {}
+            }
+        }
+    }
+
     // Try Intel backend (Linux sysfs)
     #[cfg(all(feature = "intel", not(target_os = "macos")))]
     {
@@ -147,7 +170,8 @@ fn fetch_and_print_gpu(idx: i32, options: &PrintOptions) -> Result<()> {
         }
     }
     
-    // Try NVIDIA via nvidia-smi
+    // NVIDIA via nvidia-smi (Linux/Windows with proprietary drivers; not on macOS)
+    #[cfg(not(target_os = "macos"))]
     if !found {
         let mut cuda_idx = 0;
         loop {
@@ -160,11 +184,10 @@ fn fetch_and_print_gpu(idx: i32, options: &PrintOptions) -> Result<()> {
                     cuda_idx += 1;
                 }
                 Ok(None) => break,
-                Err(e) if idx == -1 => {
-                    debug(&format!("NVIDIA detection stopped: {e}"));
+                Err(e) => {
+                    debug(&format!("NVIDIA detection skipped: {e}"));
                     break;
                 }
-                Err(e) => return Err(e),
             }
             if cuda_idx > 100 {
                 break;

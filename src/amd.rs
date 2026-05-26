@@ -8,30 +8,30 @@
 //! let gpu = get_gpu_info(0)?;
 //! ```
 
+use crate::common;
 use crate::gpu::{GpuInfo, Vendor, Uarch, TopologyHsa, Memory, MemoryType};
 use crate::global::{info, warn};
 use crate::error::{Result, GpufetchError};
-use std::process::Command;
 
 /// Lists all AMD GPUs found via lspci
 pub fn list_gpus() -> Result<()> {
     info("Listing AMD GPUs via lspci...");
     
-    let output = Command::new("lspci")
-        .args(&["-nn", "-d", "1002:"])
-        .output()
-        .map_err(|e| GpufetchError::CommandFailed(e))?;
-    
+    let Some(output) = common::try_output("lspci", &["-nn", "-d", "1002:"]) else {
+        warn("lspci not found (install pciutils)");
+        return Ok(());
+    };
+
     if !output.status.success() {
         warn("lspci returned non-zero exit code");
         return Ok(());
     }
-    
+
     let stdout = String::from_utf8_lossy(&output.stdout);
     for line in stdout.lines() {
         println!("{line}");
     }
-    
+
     Ok(())
 }
 
@@ -57,11 +57,10 @@ pub fn get_gpu_info(_idx: i32) -> Result<Option<GpuInfo>> {
 }
 
 fn detect_amd_gpu_via_lspci() -> Result<Option<GpuInfo>> {
-    let output = Command::new("lspci")
-        .args(&["-nn", "-d", "1002:"])
-        .output()
-        .map_err(|e| GpufetchError::CommandFailed(e))?;
-    
+    let Some(output) = common::try_output("lspci", &["-nn", "-d", "1002:"]) else {
+        return Ok(None);
+    };
+
     if !output.status.success() {
         warn("lspci command failed");
         return Ok(None);

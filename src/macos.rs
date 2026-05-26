@@ -1,9 +1,10 @@
 //! macOS GPU detection via system_profiler
 
-use crate::error::{Result, GpufetchError};
+use crate::common;
+use crate::error::Result;
 use crate::global::{info, warn};
-use crate::gpu::{GpuInfo, TopologyApple, TopologyIntel, Uarch, Vendor};
-use std::process::Command;
+use crate::apple;
+use crate::gpu::{GpuInfo, TopologyIntel, Uarch, Vendor};
 
 struct DisplayBlock {
     name: String,
@@ -40,10 +41,11 @@ pub fn get_gpu_info(idx: i32) -> Result<Option<GpuInfo>> {
 }
 
 fn detect_display_blocks() -> Result<Vec<DisplayBlock>> {
-    let output = Command::new("system_profiler")
-        .args(["SPDisplaysDataType"])
-        .output()
-        .map_err(GpufetchError::CommandFailed)?;
+    let Some(output) = common::try_output(common::system_profiler_bin(), &["SPDisplaysDataType"])
+    else {
+        warn("system_profiler not found (install macOS Command Line Tools or check PATH)");
+        return Ok(Vec::new());
+    };
 
     if !output.status.success() {
         warn("system_profiler returned non-zero exit code");
@@ -143,7 +145,7 @@ fn build_gpu_info(block: &DisplayBlock) -> Result<Option<GpuInfo>> {
     info(&format!("Found macOS GPU: {name}"));
 
     if name.contains("Apple") {
-        return Ok(Some(build_apple_gpu(&name, block.gpu_cores)));
+        return Ok(Some(apple::build_apple_gpu(&name, block.gpu_cores)));
     }
     if name.contains("Intel") {
         return Ok(Some(build_intel_gpu_from_name(&name, block.vram_mb)));
@@ -157,41 +159,6 @@ fn build_gpu_info(block: &DisplayBlock) -> Result<Option<GpuInfo>> {
 
     warn(&format!("Unknown macOS GPU: {name}"));
     Ok(None)
-}
-
-fn build_apple_gpu(name: &str, cores: Option<u32>) -> GpuInfo {
-    let (arch_name, process_nm, chip, gpu_cores, freq_mhz) = match_apple_gpu(name, cores);
-
-    let arch = Uarch {
-        name: arch_name.to_string(),
-        process_nm,
-        chip: chip.to_string(),
-        compute_capability: 0,
-        llvm_target: 0,
-        gt: 0,
-        eu: 0,
-    };
-
-    let mut gpu = GpuInfo::new(Vendor::Apple, name.to_string(), arch, freq_mhz);
-    gpu.topology_apple = Some(TopologyApple { gpu_cores });
-    gpu
-}
-
-fn match_apple_gpu(name: &str, cores: Option<u32>) -> (&'static str, i32, &'static str, u32, u32) {
-    let lower = name.to_lowercase();
-    let cores = cores.unwrap_or(0);
-
-    if lower.contains("m4") {
-        ("M4 GPU", 3, "M4", cores.max(10), 1500)
-    } else if lower.contains("m3") {
-        ("M3 GPU", 3, "M3", cores.max(10), 1380)
-    } else if lower.contains("m2") {
-        ("M2 GPU", 5, "M2", cores.max(10), 1398)
-    } else if lower.contains("m1") {
-        ("M1 GPU", 5, "M1", cores.max(8), 1278)
-    } else {
-        ("Apple GPU", 5, "Apple Silicon", cores.max(8), 1300)
-    }
 }
 
 fn build_intel_gpu_from_name(name: &str, vram_mb: Option<u32>) -> GpuInfo {

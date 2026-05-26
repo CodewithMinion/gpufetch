@@ -8,20 +8,20 @@
 //! let gpu = get_gpu_info(0)?;
 //! ```
 
+use crate::common;
 use crate::gpu::{GpuInfo, Vendor, Uarch, TopologyCuda, Memory, MemoryType, CacheInfo};
 use crate::global::{info, warn};
 use crate::error::{Result, GpufetchError};
-use std::process::Command;
 
 /// Lists all NVIDIA GPUs found via nvidia-smi
 pub fn list_gpus() -> Result<()> {
     info("Listing NVIDIA GPUs via CUDA...");
     
-    let output = Command::new("nvidia-smi")
-        .arg("-L")
-        .output()
-        .map_err(|e| GpufetchError::CommandFailed(e))?;
-    
+    let Some(output) = common::try_output("nvidia-smi", &["-L"]) else {
+        warn("nvidia-smi not found (no NVIDIA driver or tool not in PATH)");
+        return Ok(());
+    };
+
     if !output.status.success() {
         warn("nvidia-smi returned non-zero exit code");
         return Ok(());
@@ -47,11 +47,16 @@ pub fn get_gpu_info(idx: i32) -> Result<Option<GpuInfo>> {
 }
 
 fn get_cuda_info_via_smi(idx: i32) -> Result<Option<GpuInfo>> {
-    let output = Command::new("nvidia-smi")
-        .args(&["--query-gpu=name,memory.total,driver_version", "--format=csv,noheader"])
-        .output()
-        .map_err(|e| GpufetchError::CommandFailed(e))?;
-    
+    let Some(output) = common::try_output(
+        "nvidia-smi",
+        &[
+            "--query-gpu=name,memory.total,driver_version",
+            "--format=csv,noheader",
+        ],
+    ) else {
+        return Ok(None);
+    };
+
     if !output.status.success() {
         return Ok(None);
     }
