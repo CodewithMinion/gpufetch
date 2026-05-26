@@ -85,7 +85,7 @@ If there is a NVIDIA, AMD, or Intel GPU in the system and the appropriate backen
 To build gpufetch, just clone the repo and run:
 
 ```bash
-git clone https://github.com/your-repo/gpufetch.git
+git clone https://github.com/CodewithMinion/gpufetch.git
 cd gpufetch
 cargo install --path .
 gpufetch
