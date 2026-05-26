@@ -1,6 +1,10 @@
-# gpufetch
+![Text](pictures/gpufetch.png)
+
+---
 
 **gpufetch** is a simple yet fancy GPU architecture fetching tool written in **Rust**. It displays detailed GPU information in a clean, beautiful, and colorful way.
+
+![Examples](pictures/examples.gif)
 
 ---
 
