@@ -9,6 +9,9 @@ mod args;
 mod colors;
 mod error;
 
+#[cfg(target_os = "macos")]
+mod macos;
+
 // Re-export commonly used items
 pub use global::{error, warn, info, debug};
 pub use error::{Result, GpufetchError};
@@ -17,7 +20,7 @@ use clap::Parser;
 use std::process;
 
 use args::Args;
-use printer::print_gpu_info;
+use printer::{print_gpu_info, PrintOptions};
 
 fn main() {
     let args = Args::parse();
@@ -52,77 +55,121 @@ fn main() {
         args.gpu.parse::<i32>().unwrap_or(0)
     };
     
-    if let Err(e) = fetch_and_print_gpu(gpu_idx) {
+    let print_options = PrintOptions {
+        color: args.color.clone(),
+        logo_short: args.logo_short,
+        logo_long: args.logo_long,
+    };
+    
+    if let Err(e) = fetch_and_print_gpu(gpu_idx, &print_options) {
         error(&format!("Failed to fetch GPU info: {e}"));
         process::exit(1);
     }
 }
 
 fn list_gpus() -> Result<()> {
+    #[cfg(target_os = "macos")]
+    macos::list_gpus()?;
+    
     #[cfg(feature = "intel")]
-    intel::list_gpus()?;
+    {
+        #[cfg(target_os = "linux")]
+        intel::list_gpus()?;
+    }
     
     #[cfg(feature = "amd")]
-    amd::list_gpus()?;
+    {
+        #[cfg(target_os = "linux")]
+        amd::list_gpus()?;
+    }
     
-    #[cfg(feature = "cuda")]
     cuda::list_gpus()?;
     
     Ok(())
 }
 
-fn fetch_and_print_gpu(idx: i32) -> Result<()> {
+fn fetch_and_print_gpu(idx: i32, options: &PrintOptions) -> Result<()> {
     let mut found = false;
     
-    // Try Intel backend
-    #[cfg(feature = "intel")]
+    // macOS: system_profiler backend
+    #[cfg(target_os = "macos")]
     {
-        if idx == -1 || idx == 0 {
+        if idx == -1 {
+            let mut mac_idx = 0;
+            loop {
+                match macos::get_gpu_info(mac_idx) {
+                    Ok(Some(gpu)) => {
+                        print_gpu_info(&gpu, options)?;
+                        found = true;
+                        mac_idx += 1;
+                    }
+                    Ok(None) => break,
+                    Err(e) => return Err(e),
+                }
+            }
+        } else {
+            match macos::get_gpu_info(idx) {
+                Ok(Some(gpu)) => {
+                    print_gpu_info(&gpu, options)?;
+                    found = true;
+                }
+                Ok(None) | Err(_) if idx != -1 => {}
+                Ok(None) | Err(_) => {}
+            }
+        }
+    }
+    
+    // Try Intel backend (Linux sysfs)
+    #[cfg(all(feature = "intel", not(target_os = "macos")))]
+    {
+        if !found && (idx == -1 || idx == 0) {
             match intel::get_gpu_info(0) {
                 Ok(Some(gpu)) => {
-                    print_gpu_info(&gpu)?;
+                    print_gpu_info(&gpu, options)?;
                     found = true;
-                },
-                Ok(None) | Err(_) if idx != -1 => {},
-                Ok(None) | Err(_) => {},
+                }
+                Ok(None) | Err(_) => {}
             }
         }
     }
     
-    // Try AMD backend
-    #[cfg(feature = "amd")]
+    // Try AMD backend (Linux lspci)
+    #[cfg(all(feature = "amd", not(target_os = "macos")))]
     {
-        if idx == -1 || idx == 0 {
+        if !found && (idx == -1 || idx == 0) {
             match amd::get_gpu_info(0) {
                 Ok(Some(gpu)) => {
-                    print_gpu_info(&gpu)?;
+                    print_gpu_info(&gpu, options)?;
                     found = true;
-                },
-                Ok(None) | Err(_) if idx != -1 => {},
-                Ok(None) | Err(_) => {},
+                }
+                Ok(None) | Err(_) => {}
             }
         }
     }
     
-    // Try CUDA backend
-    #[cfg(feature = "cuda")]
-    {
+    // Try NVIDIA via nvidia-smi
+    if !found {
         let mut cuda_idx = 0;
         loop {
-            if idx == -1 || cuda_idx == idx {
-                match cuda::get_gpu_info(cuda_idx) {
-                    Ok(Some(gpu)) => {
-                        print_gpu_info(&gpu)?;
+            match cuda::get_gpu_info(cuda_idx) {
+                Ok(Some(gpu)) => {
+                    if idx == -1 || cuda_idx == idx {
+                        print_gpu_info(&gpu, options)?;
                         found = true;
-                    },
-                    Ok(None) if idx != -1 => break,
-                    Ok(None) | Err(_) => cuda_idx += 1,
+                    }
+                    cuda_idx += 1;
                 }
-            } else if idx != -1 {
+                Ok(None) => break,
+                Err(e) if idx == -1 => {
+                    debug(&format!("NVIDIA detection stopped: {e}"));
+                    break;
+                }
+                Err(e) => return Err(e),
+            }
+            if cuda_idx > 100 {
                 break;
             }
-            cuda_idx += 1;
-            if cuda_idx > 100 {
+            if idx != -1 {
                 break;
             }
         }
@@ -134,4 +181,3 @@ fn fetch_and_print_gpu(idx: i32) -> Result<()> {
     
     Ok(())
 }
-

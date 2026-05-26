@@ -63,6 +63,3 @@ impl From<std::string::FromUtf8Error> for GpufetchError {
 
 /// Convenience Result type using our custom error
 pub type Result<T> = std::result::Result<T, GpufetchError>;
-
-/// Std lib Result alias for generic error conversion
-pub type StdResult<T, E> = std::result::Result<T, E>;

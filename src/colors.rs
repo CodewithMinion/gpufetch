@@ -37,6 +37,15 @@ impl Color {
         Self::new(255, 255, 255)  // White for values
     }
     
+    // Apple - light gray for labels
+    pub const fn apple_logo() -> Self {
+        Self::new(180, 180, 185)
+    }
+    
+    pub const fn apple_text() -> Self {
+        Self::new(255, 255, 255)
+    }
+    
     pub fn to_ansi_fg(&self, bold: bool) -> String {
         if bold {
             format!("\x1b[1m\x1b[38;2;{};{};{}m", self.r, self.g, self.b)
@@ -45,26 +54,9 @@ impl Color {
         }
     }
     
-    pub fn to_ansi_bg(&self) -> String {
-        format!("\x1b[48;2;{};{};{}m", self.r, self.g, self.b)
-    }
 }
 
 pub const RESET: &str = "\x1b[0m";
-
-pub mod ansi {
-    pub const BLACK: &str = "\x1b[30m";
-    pub const RED: &str = "\x1b[31m";
-    pub const GREEN: &str = "\x1b[32m";
-    pub const YELLOW: &str = "\x1b[33m";
-    pub const BLUE: &str = "\x1b[34m";
-    pub const MAGENTA: &str = "\x1b[35m";
-    pub const CYAN: &str = "\x1b[36m";
-    pub const WHITE: &str = "\x1b[37m";
-    
-    pub const BOLD: &str = "\x1b[1m";
-    pub const RESET: &str = "\x1b[0m";
-}
 
 pub fn parse_color_string(s: &str) -> Result<Vec<Color>, String> {
     let parts: Vec<&str> = s.split(':').collect();
@@ -102,6 +94,10 @@ pub fn parse_color_scheme(s: &str) -> Result<(Vec<Color>, Vec<Color>), String> {
         "intel" => Ok((
             vec![Color::intel_logo()],
             vec![Color::intel_text(), Color::intel_text()],
+        )),
+        "apple" => Ok((
+            vec![Color::apple_logo(), Color::apple_logo()],
+            vec![Color::apple_text(), Color::apple_text()],
         )),
         _ => Err(format!("Unknown color scheme: {}", s)),
     }

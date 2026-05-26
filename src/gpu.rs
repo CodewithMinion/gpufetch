@@ -11,6 +11,8 @@ pub enum Vendor {
     Nvidia,
     Amd,
     Intel,
+    #[allow(dead_code)]
+    Apple,
 }
 
 /// GPU memory information
@@ -25,16 +27,23 @@ pub struct Memory {
 /// GPU memory type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MemoryType {
+    #[allow(dead_code)]
     Unknown,
     Gddr5,
     Gddr5x,
     Gddr6,
     Gddr6x,
+    #[allow(dead_code)]
     Hbm,
+    #[allow(dead_code)]
     Hbm2,
+    #[allow(dead_code)]
     Hbm2e,
+    #[allow(dead_code)]
     Hbm3,
+    #[allow(dead_code)]
     Ddr4,
+    #[allow(dead_code)]
     Ddr5,
 }
 
@@ -43,6 +52,7 @@ pub enum MemoryType {
 pub struct CacheInfo {
     pub l1_size: u32,
     pub l2_size: u64,
+    #[allow(dead_code)]
     pub shared_mem_per_block: u32,
 }
 
@@ -77,6 +87,12 @@ pub struct TopologyIntel {
     pub gt: i32,
 }
 
+/// Apple Silicon GPU topology
+#[derive(Debug, Clone)]
+pub struct TopologyApple {
+    pub gpu_cores: u32,
+}
+
 /// Microarchitecture information
 #[derive(Debug, Clone)]
 pub struct Uarch {
@@ -86,10 +102,13 @@ pub struct Uarch {
     /// CUDA compute capability (NVIDIA only)
     pub compute_capability: u32,
     /// LLVM target version (AMD only)
+    #[allow(dead_code)]
     pub llvm_target: i32,
     /// GT type (Intel only)
+    #[allow(dead_code)]
     pub gt: i32,
     /// Execution units (Intel only)
+    #[allow(dead_code)]
     pub eu: i32,
 }
 
@@ -105,6 +124,7 @@ pub struct GpuInfo {
     pub topology_cuda: Option<TopologyCuda>,
     pub topology_hsa: Option<TopologyHsa>,
     pub topology_intel: Option<TopologyIntel>,
+    pub topology_apple: Option<TopologyApple>,
     /// Peak FP32 performance in FLOPS
     pub peak_performance: Option<i64>,
     /// Peak tensor/Matrix performance in FLOPS
@@ -124,6 +144,7 @@ impl GpuInfo {
             topology_cuda: None,
             topology_hsa: None,
             topology_intel: None,
+            topology_apple: None,
             peak_performance: None,
             peak_performance_tensor: None,
         }
@@ -135,6 +156,7 @@ impl GpuInfo {
             Vendor::Nvidia => "NVIDIA",
             Vendor::Amd => "AMD",
             Vendor::Intel => "Intel",
+            Vendor::Apple => "Apple",
         }
     }
     
@@ -144,6 +166,7 @@ impl GpuInfo {
             Vendor::Nvidia => Color::nvidia_logo(),
             Vendor::Amd => Color::amd_logo(),
             Vendor::Intel => Color::intel_logo(),
+            Vendor::Apple => Color::apple_logo(),
         }
     }
     
@@ -153,6 +176,7 @@ impl GpuInfo {
             Vendor::Nvidia => Color::nvidia_text(),
             Vendor::Amd => Color::amd_text(),
             Vendor::Intel => Color::intel_text(),
+            Vendor::Apple => Color::apple_text(),
         }
     }
 }

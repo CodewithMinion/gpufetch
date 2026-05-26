@@ -45,7 +45,15 @@ pub fn list_gpus() -> Result<()> {
 /// * `Ok(None)` - No GPU at this index
 /// * `Err(GpufetchError)` - Detection failed
 pub fn get_gpu_info(_idx: i32) -> Result<Option<GpuInfo>> {
-    detect_amd_gpu_via_lspci()
+    #[cfg(target_os = "linux")]
+    {
+        return detect_amd_gpu_via_lspci();
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = _idx;
+        Ok(None)
+    }
 }
 
 fn detect_amd_gpu_via_lspci() -> Result<Option<GpuInfo>> {

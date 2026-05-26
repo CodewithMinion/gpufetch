@@ -120,8 +120,11 @@ $C1          ##############################@
 
 pub struct Logo {
     pub art: &'static str,
+    #[allow(dead_code)]
     pub width: u32,
+    #[allow(dead_code)]
     pub height: u32,
+    #[allow(dead_code)]
     pub replace_blocks: bool,
 }
 

@@ -11,26 +11,12 @@
 use crate::gpu::{GpuInfo, Vendor, Uarch, TopologyCuda, Memory, MemoryType, CacheInfo};
 use crate::global::{info, warn};
 use crate::error::{Result, GpufetchError};
-#[cfg(target_os = "linux")]
 use std::process::Command;
 
 /// Lists all NVIDIA GPUs found via nvidia-smi
 pub fn list_gpus() -> Result<()> {
     info("Listing NVIDIA GPUs via CUDA...");
     
-    #[cfg(not(feature = "cuda"))]
-    {
-        warn("CUDA feature not enabled - using nvidia-smi fallback");
-    }
-    
-    #[cfg(feature = "cuda")]
-    {
-        if !cuda_available() {
-            warn("CUDA runtime not available");
-            return Ok(());
-        }
-    }
-        
     let output = Command::new("nvidia-smi")
         .arg("-L")
         .output()
@@ -49,37 +35,17 @@ pub fn list_gpus() -> Result<()> {
     Ok(())
 }
 
-/// Gets NVIDIA GPU information by index
+/// Gets NVIDIA GPU information by index via nvidia-smi
 pub fn get_gpu_info(idx: i32) -> Result<Option<GpuInfo>> {
-    #[cfg(not(feature = "cuda"))]
-    {
-        detect_via_nvidia_smi(idx)
-    }
-    
-    #[cfg(feature = "cuda")]
-    {
-        if !cuda_available() {
-            return Ok(None);
+    match get_cuda_info_via_smi(idx) {
+        Ok(Some(gpu)) => {
+            info(&format!("Found NVIDIA GPU: {}", gpu.name));
+            Ok(Some(gpu))
         }
-        
-        match get_cuda_info_via_smi(idx) {
-            Ok(Some(gpu)) => {
-                info(&format!("Found NVIDIA GPU: {}", gpu.name));
-                Ok(Some(gpu))
-            },
-            Ok(None) => Ok(None),
-            Err(e) => Err(e),
-        }
+        other => other,
     }
 }
 
-#[cfg(feature = "cuda")]
-fn cuda_available() -> bool {
-    std::path::Path::new("/usr/local/cuda").exists() || 
-    std::env::var("CUDA_HOME").is_ok()
-}
-
-#[cfg(feature = "cuda")]
 fn get_cuda_info_via_smi(idx: i32) -> Result<Option<GpuInfo>> {
     let output = Command::new("nvidia-smi")
         .args(&["--query-gpu=name,memory.total,driver_version", "--format=csv,noheader"])
@@ -165,58 +131,6 @@ fn get_cuda_info_via_smi(idx: i32) -> Result<Option<GpuInfo>> {
     gpu.cache = cache;
     gpu.peak_performance = peak_perf;
     gpu.peak_performance_tensor = peak_tensor;
-    
-    Ok(Some(gpu))
-}
-
-#[cfg(not(feature = "cuda"))]
-fn detect_via_nvidia_smi(idx: i32) -> Result<Option<GpuInfo>> {
-    let output = Command::new("nvidia-smi")
-        .args(&["--query-gpu=name", "--format=csv,noheader"])
-        .output()
-        .map_err(|e| GpufetchError::CommandFailed(e))?;
-    
-    if !output.status.success() {
-        return Ok(None);
-    }
-    
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let lines: Vec<&str> = stdout.lines().collect();
-    
-    if idx as usize >= lines.len() {
-        return Ok(None);
-    }
-    
-    let name = lines[idx as usize].trim().to_string();
-    
-    let (arch, compute_cap, cuda_cores, sm_count, freq_mhz) = get_gpu_specs(&name);
-    
-    if cuda_cores == 0 {
-        return Ok(None);
-    }
-    
-    let arch_struct = Uarch {
-        name: arch.clone(),
-        process_nm: get_process_node(&arch),
-        chip: format!("CC {}.{}", compute_cap / 10, compute_cap % 10),
-        compute_capability: compute_cap,
-        llvm_target: 0,
-        gt: 0,
-        eu: 0,
-    };
-    
-    let topology = TopologyCuda {
-        streaming_multiprocessors: sm_count,
-        cores_per_sm: get_cores_per_sm(compute_cap),
-        cuda_cores,
-        tensor_cores: if compute_cap >= 70 { get_tensor_cores(sm_count, compute_cap) } else { 0 },
-    };
-    
-    let peak_perf = Some((freq_mhz as i64) * 1_000_000 * (cuda_cores as i64) * 2);
-    
-    let mut gpu = GpuInfo::new(Vendor::Nvidia, name, arch_struct, freq_mhz);
-    gpu.topology_cuda = Some(topology);
-    gpu.peak_performance = peak_perf;
     
     Ok(Some(gpu))
 }

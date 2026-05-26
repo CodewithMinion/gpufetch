@@ -80,11 +80,6 @@ fn read_pci_devices() -> Result<Vec<PciDevice>> {
     
     for entry in entries.flatten() {
         let path = entry.path();
-        let device_id = match path.file_name() {
-            Some(name) => name.to_string_lossy().to_string(),
-            None => continue,
-        };
-        
         let vendor = match fs::read_to_string(path.join("vendor")) {
             Ok(v) => v,
             Err(_) => continue,
@@ -113,7 +108,6 @@ fn read_pci_devices() -> Result<Vec<PciDevice>> {
         
         if vendor_id == 0x8086 && (device_code != 0 || device_class != 0) {
             devices.push(PciDevice {
-                device_id,
                 vendor_id,
                 device_code,
                 device_class,
@@ -143,7 +137,7 @@ fn create_intel_gpu_info(device: &PciDevice) -> Result<Option<GpuInfo>> {
     
     let topology = TopologyIntel {
         subslices: if gt > 0 { (gt * 2) as i32 } else { -1 },
-        eu_per_subslice: if eu > 0 && gt > 0 { (eu as i32 / gt as i32 / 2) } else { -1 },
+        eu_per_subslice: if eu > 0 && gt > 0 { eu as i32 / gt as i32 / 2 } else { -1 },
         gt: gt as i32,
     };
     
@@ -295,7 +289,6 @@ fn get_max_frequency(arch_name: &str) -> u32 {
 
 #[cfg(target_os = "linux")]
 struct PciDevice {
-    device_id: String,
     vendor_id: u16,
     device_code: u16,
     device_class: u32,

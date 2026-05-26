@@ -39,35 +39,6 @@ pub struct Args {
     pub version: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum GpuVendor {
-    Nvidia,
-    Amd,
-    Intel,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum ColorScheme {
-    Nvidia,
-    Amd,
-    Intel,
-    Custom(Vec<u8>),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Style {
-    Empty,
-    Fancy,
-    Retro,
-    Legacy,
-}
-
-impl Default for Style {
-    fn default() -> Self {
-        Style::Fancy
-    }
-}
-
 pub fn print_help() {
     println!(
         r#"Usage: gpufetch [OPTIONS]
@@ -85,7 +56,7 @@ Options:
   -V, --version              Print version
 
 COLORS:
-  Valid color schemes: intel, amd, nvidia
+  Valid color schemes: intel, amd, nvidia, apple
   Custom colors: R,G,B:R,G,B:R,G,B:R,G,B (5 RGB values)
 
 EXAMPLES:
